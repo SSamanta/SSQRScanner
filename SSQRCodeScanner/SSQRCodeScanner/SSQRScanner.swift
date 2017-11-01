@@ -8,17 +8,16 @@
 import UIKit
 import AVFoundation
 
-public typealias SSQRScannerHandler = (obj : AnyObject? , error : NSError?) -> Void
+public typealias SSQRScannerHandler = (_ obj : AnyObject? , _ error : NSError?) -> Void
+
 public class SSQRScanner: NSObject,AVCaptureMetadataOutputObjectsDelegate {
-    
     var captureSession:AVCaptureSession?
     var scannerPreviewLayer:AVCaptureVideoPreviewLayer?
     var qrScannerHandler: SSQRScannerHandler?
     
-    public func createQRScannerOnCompletion(inView: UIView?, scannerHandler :SSQRScannerHandler) {
-        
+    public func createQRScannerOnCompletion(inView: UIView?, scannerHandler :@escaping SSQRScannerHandler) {
         self.qrScannerHandler = scannerHandler
-        let captureDevice = AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)
+        let captureDevice = AVCaptureDevice.default(for: AVMediaType.video)
         var error:NSError?
         let input: AnyObject!
         do {
@@ -28,33 +27,32 @@ public class SSQRScanner: NSObject,AVCaptureMetadataOutputObjectsDelegate {
             input = nil
         }
         if (error != nil) {
-            self.qrScannerHandler!(obj: nil, error: error)
+            self.qrScannerHandler!(nil, error)
         }
         captureSession = AVCaptureSession()
         captureSession?.addInput(input as! AVCaptureInput)
         let captureMetadataOutput = AVCaptureMetadataOutput()
         captureSession?.addOutput(captureMetadataOutput)
         
-        captureMetadataOutput.setMetadataObjectsDelegate(self, queue: dispatch_get_main_queue())
-        captureMetadataOutput.metadataObjectTypes = [AVMetadataObjectTypeQRCode]
+        captureMetadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
+        captureMetadataOutput.metadataObjectTypes = [AVMetadataObject.ObjectType.qr]
         
-        scannerPreviewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        scannerPreviewLayer?.videoGravity = AVLayerVideoGravityResizeAspectFill
+        scannerPreviewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
+        scannerPreviewLayer?.videoGravity = AVLayerVideoGravity.resizeAspectFill
         scannerPreviewLayer?.frame = inView!.layer.bounds
         inView!.layer.addSublayer(scannerPreviewLayer!)
         
         captureSession?.startRunning()
 
     }
-    public func captureOutput(captureOutput: AVCaptureOutput!, didOutputMetadataObjects metadataObjects: [AnyObject]!, fromConnection connection: AVCaptureConnection!) {
-        
-        if metadataObjects == nil || metadataObjects.count == 0 {
-            self.qrScannerHandler!(obj: nil, error:nil)
+    public func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+        if metadataObjects.count == 0 {
+            self.qrScannerHandler!(nil, nil)
         }
         let metadataObj = metadataObjects[0] as! AVMetadataMachineReadableCodeObject
-        if metadataObj.type == AVMetadataObjectTypeQRCode {
-            _ = scannerPreviewLayer?.transformedMetadataObjectForMetadataObject(metadataObj as AVMetadataMachineReadableCodeObject) as! AVMetadataMachineReadableCodeObject
-            self.qrScannerHandler!(obj: metadataObj.stringValue, error: nil)
+        if metadataObj.type == AVMetadataObject.ObjectType.qr {
+            _ = scannerPreviewLayer?.transformedMetadataObject(for: metadataObj as AVMetadataMachineReadableCodeObject) as! AVMetadataMachineReadableCodeObject
+            self.qrScannerHandler!(metadataObj.stringValue as AnyObject, nil)
         }
         captureSession?.stopRunning()
     }
