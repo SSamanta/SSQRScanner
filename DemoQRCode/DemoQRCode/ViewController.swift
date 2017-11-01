@@ -22,7 +22,7 @@ class ViewController: UIViewController {
     }
     func loadQRCodeScanner() {
         self.qrScanner = SSQRScanner()
-        self.qrScanner!.createQRScannerOnCompletion(inView: self.view, scannerHandler: {[weak self] (obj, error) -> Void in
+        self.qrScanner!.createQRScannerOnCompletion(inView: self.scannerView, scannerHandler: {[weak self] (obj, error) -> Void in
             if((obj) != nil) {
                 if self != nil {
                     let result = obj as! String
