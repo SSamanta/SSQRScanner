@@ -34,7 +34,7 @@ public class SSQRScanner: NSObject,AVCaptureMetadataOutputObjectsDelegate {
         let captureMetadataOutput = AVCaptureMetadataOutput()
         captureSession?.addOutput(captureMetadataOutput)
         
-        captureMetadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
+        captureMetadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue(label: "VideoDataOutputQueue"))
         captureMetadataOutput.metadataObjectTypes = [AVMetadataObject.ObjectType.qr]
         
         scannerPreviewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
@@ -47,12 +47,16 @@ public class SSQRScanner: NSObject,AVCaptureMetadataOutputObjectsDelegate {
     }
     public func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         if metadataObjects.count == 0 {
-            self.qrScannerHandler!(nil, nil)
+            DispatchQueue.main.async {
+                self.qrScannerHandler!(nil, nil)
+            }
         }
         let metadataObj = metadataObjects[0] as! AVMetadataMachineReadableCodeObject
         if metadataObj.type == AVMetadataObject.ObjectType.qr {
             _ = scannerPreviewLayer?.transformedMetadataObject(for: metadataObj as AVMetadataMachineReadableCodeObject) as! AVMetadataMachineReadableCodeObject
-            self.qrScannerHandler!(metadataObj.stringValue as AnyObject, nil)
+            DispatchQueue.main.async {
+                self.qrScannerHandler!(metadataObj.stringValue as AnyObject, nil)
+            }
         }
         captureSession?.stopRunning()
     }
